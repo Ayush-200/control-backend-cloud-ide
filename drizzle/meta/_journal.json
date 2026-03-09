@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1772627826435,
+      "tag": "0000_polite_spiral",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772733295195,
+      "tag": "0001_loving_clint_barton",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772769827753,
+      "tag": "0002_milky_the_anarchist",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+export declare function deregisterTarget(targetGroupArn: string, taskPrivateIp: string, port?: number): Promise<import("@aws-sdk/client-elastic-load-balancing-v2").DeregisterTargetsCommandOutput>;
+//# sourceMappingURL=deregisterTask.d.ts.map

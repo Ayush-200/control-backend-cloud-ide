@@ -1,0 +1,1 @@
+ALTER TABLE "cloud-ide-users" DROP COLUMN "accessPointId";
