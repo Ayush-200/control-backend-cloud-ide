@@ -8,7 +8,7 @@ router.get('/debug', getSessionInfo);
 
 // Proxy route - forwards all requests to container's localhost:port
 // Order matters: more specific routes first
-router.all('/:port/*', proxyToContainer);
+router.all('/:port/*path', proxyToContainer);
 router.all('/:port', proxyToContainer);
 
 export default router;
