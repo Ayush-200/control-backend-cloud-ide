@@ -81,6 +81,17 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
   const cacheKey = `${privateIp}:${port}`;
   
   console.log(`Routing session ${sessionId} to ${targetUrl}`);
+  
+  // Test connectivity to container
+  try {
+    const testResponse = await fetch(`http://${privateIp}:8080/health`, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+    console.log(`✅ Container health check: ${testResponse.status}`);
+  } catch (err: any) {
+    console.log(`❌ Container health check failed: ${err.message}`);
+  }
 
   // Get or create cached proxy instance
   let proxy = proxyCache.get(cacheKey);
