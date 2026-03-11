@@ -83,6 +83,39 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
 
   console.log(`Routing session ${sessionId} to ${targetUrl}`);
 
+  // Test connection to container before proxying
+  try {
+    const testResponse = await fetch(`http://${privateIp}:8080/health`, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+    console.log(`Container health check: ${testResponse.status}`);
+  } catch (healthError: any) {
+    console.error(`Container health check failed: ${healthError.message}`);
+    return res.status(502).json({ 
+      error: 'Container not accessible',
+      message: `Cannot reach container at ${privateIp}:8080`,
+      details: healthError.message
+    });
+  }
+
+  // Test if the target port is accessible
+  try {
+    const portTestResponse = await fetch(`http://${privateIp}:${port}/`, { 
+      method: 'GET',
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+    console.log(`Target port ${port} check: ${portTestResponse.status}`);
+  } catch (portError: any) {
+    console.error(`Target port ${port} check failed: ${portError.message}`);
+    return res.status(502).json({ 
+      error: 'Target port not accessible',
+      message: `No service running on ${privateIp}:${port}`,
+      details: portError.message,
+      suggestion: 'Make sure your dev server is running with --host 0.0.0.0'
+    });
+  }
+
   // Get or create cached proxy instance
   let proxy = proxyCache.get(cacheKey);
 
