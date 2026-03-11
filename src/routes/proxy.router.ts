@@ -6,9 +6,9 @@ const router = express.Router();
 // Debug endpoint to check session info
 router.get('/debug', getSessionInfo);
 
-// Proxy route - forwards all requests to container's localhost:port
-// Order matters: more specific routes first
-router.all('/:port/*path', proxyToContainer);
-router.all('/:port', proxyToContainer);
+// New proxy route structure: /output/:sessionId/:port/*
+// This ensures every request contains routing information
+router.all('/:sessionId/:port/*', proxyToContainer);
+router.all('/:sessionId/:port', proxyToContainer);
 
 export default router;
