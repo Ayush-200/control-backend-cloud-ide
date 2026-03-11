@@ -8,7 +8,7 @@ router.get('/debug', getSessionInfo);
 
 // New proxy route structure: /output/:sessionId/:port/*
 // This ensures every request contains routing information
-router.all('/:sessionId/:port/*', proxyToContainer);
+router.all('/:sessionId/:port/*path', proxyToContainer);
 router.all('/:sessionId/:port', proxyToContainer);
 
 export default router;
