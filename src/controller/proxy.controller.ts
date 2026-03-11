@@ -54,6 +54,8 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
   console.log('Port:', port);
   console.log('Path:', req.path);
   console.log('Original URL:', req.originalUrl);
+  console.log('Params:', req.params);
+  console.log('URL:', req.url);
 
   if (!sessionId || !port) {
     return res.status(400).json({ 
@@ -90,7 +92,9 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
       changeOrigin: true,
       ws: true, // forward WebSocket connections for HMR
       pathRewrite: (path) => {
-        const prefix = `/output/${sessionId}/${port}`;
+        // The path here already has /output stripped by Express router mounting
+        // We need to remove /:sessionId/:port from the beginning
+        const prefix = `/${sessionId}/${port}`;
         const newPath = path.startsWith(prefix) ? path.replace(prefix, '') || '/' : path;
         console.log(`Path rewrite: ${path} -> ${newPath}`);
         return newPath;
