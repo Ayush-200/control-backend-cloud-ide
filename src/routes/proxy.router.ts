@@ -3,12 +3,11 @@ import { proxyToContainer, getSessionInfo } from '../controller/proxy.controller
 
 const router = express.Router();
 
-// Debug endpoint to check session info
+// Debug endpoint
 router.get('/debug', getSessionInfo);
 
-// New proxy route structure: /output/:sessionId/:port/*
-// Use splat parameter to catch all paths
-router.all('/:sessionId/:port/*splat', proxyToContainer);
-router.all('/:sessionId/:port', proxyToContainer);
+// Proxy route for all containers
+router.all('/output/:sessionId/:port/*path', proxyToContainer);
+router.all('/output/:sessionId/:port', proxyToContainer);
 
 export default router;

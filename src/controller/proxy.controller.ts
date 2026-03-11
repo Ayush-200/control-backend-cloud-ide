@@ -1,14 +1,15 @@
-import type { Request, Response, NextFunction } from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { Request, Response, NextFunction } from 'express';
+import { createProxyMiddleware, RequestHandler } from 'http-proxy-middleware';
 import { getSessionById } from '../repositories/session.repository.js';
 
-// Cache proxy instances to prevent memory leaks
-export const proxyCache = new Map<string, ReturnType<typeof createProxyMiddleware>>();
+// Cache proxy instances to reuse them
+export const proxyCache = new Map<string, RequestHandler>();
 
-// Debug endpoint to check session info
+/**
+ * Debug endpoint: returns session info
+ */
 export const getSessionInfo = async (req: Request, res: Response) => {
   const sessionId = req.query.sessionId as string;
-
   if (!sessionId) {
     return res.status(400).json({ 
       error: 'sessionId query parameter is required',
@@ -17,11 +18,10 @@ export const getSessionInfo = async (req: Request, res: Response) => {
   }
 
   const session = await getSessionById(sessionId);
-
   if (!session) {
     return res.status(404).json({ 
       error: 'Session not found',
-      sessionId: sessionId
+      sessionId
     });
   }
 
@@ -41,7 +41,10 @@ export const getSessionInfo = async (req: Request, res: Response) => {
   });
 };
 
-// Proxy handler for /output/:sessionId/:port routes
+/**
+ * Proxy middleware: forwards requests to the container
+ * Handles path rewriting so absolute paths work
+ */
 export const proxyToContainer = async (req: Request, res: Response, next: NextFunction) => {
   const sessionId = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId;
   const port = Array.isArray(req.params.port) ? req.params.port[0] : req.params.port;
@@ -52,51 +55,52 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
   console.log('Path:', req.path);
   console.log('Original URL:', req.originalUrl);
 
-  if (!sessionId) {
+  if (!sessionId || !port) {
     return res.status(400).json({ 
-      error: 'sessionId parameter is required',
-      example: `/output/your-session-id/${port}/`
+      error: 'sessionId and port are required in the path',
+      example: `/output/your-session-id/5173/`
     });
   }
 
-  // Get session from database
   const session = await getSessionById(sessionId);
-
   if (!session) {
     return res.status(404).json({ 
       error: 'Session not found or expired',
-      sessionId: sessionId
+      sessionId
     });
   }
 
   const privateIp = session.privateIp;
-
-  // Validate port number
-  const portNum = parseInt(port);
+  const portNum = parseInt(port, 10);
   if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
     return res.status(400).json({ error: 'Invalid port number' });
   }
 
   const targetUrl = `http://${privateIp}:${port}`;
   const cacheKey = `${sessionId}:${privateIp}:${port}`;
-  
+
   console.log(`Routing session ${sessionId} to ${targetUrl}`);
 
   // Get or create cached proxy instance
   let proxy = proxyCache.get(cacheKey);
-  
+
   if (!proxy) {
-   proxy = createProxyMiddleware({
-  target: targetUrl,
-  changeOrigin: true,
-  ws: true
-  });
-    
+    proxy = createProxyMiddleware({
+      target: targetUrl,
+      changeOrigin: true,
+      ws: true, // forward WebSocket connections for HMR
+      pathRewrite: (path) => {
+        const prefix = `/output/${sessionId}/${port}`;
+        const newPath = path.startsWith(prefix) ? path.replace(prefix, '') || '/' : path;
+        console.log(`Path rewrite: ${path} -> ${newPath}`);
+        return newPath;
+      }
+    });
+
     proxyCache.set(cacheKey, proxy);
     console.log(`Created proxy instance for ${cacheKey}`);
   }
 
-  // Execute the proxy with error handling
   try {
     proxy(req, res, next);
   } catch (err: any) {
