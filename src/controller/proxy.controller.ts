@@ -72,6 +72,14 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
     });
   }
 
+  console.log('Session data from DB:', {
+    sessionId: session.sessionId,
+    privateIp: session.privateIp,
+    taskArn: session.taskArn,
+    userId: session.userId,
+    projectName: session.projectName
+  });
+
   const privateIp = session.privateIp;
   const portNum = parseInt(port, 10);
   if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
