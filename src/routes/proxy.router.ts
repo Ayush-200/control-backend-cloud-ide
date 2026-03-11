@@ -7,8 +7,8 @@ const router = express.Router();
 router.get('/debug', getSessionInfo);
 
 // New proxy route structure: /output/:sessionId/:port/*
-// This ensures every request contains routing information
-router.all('/:sessionId/:port/*path', proxyToContainer);
+// Use splat parameter to catch all paths
+router.all('/:sessionId/:port/*splat', proxyToContainer);
 router.all('/:sessionId/:port', proxyToContainer);
 
 export default router;
