@@ -3,7 +3,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 import { getSessionById } from '../repositories/session.repository.js';
 
 // Cache proxy instances to prevent memory leaks
-const proxyCache = new Map<string, ReturnType<typeof createProxyMiddleware>>();
+export const proxyCache = new Map<string, ReturnType<typeof createProxyMiddleware>>();
 
 // Debug endpoint to check session info
 export const getSessionInfo = async (req: Request, res: Response) => {
@@ -86,17 +86,11 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
   let proxy = proxyCache.get(cacheKey);
   
   if (!proxy) {
-    proxy = createProxyMiddleware({
-      target: targetUrl,
-      changeOrigin: true,
-      ws: true,
-      pathRewrite: (path, req) => {
-        // Remove /output/:sessionId/:port prefix
-        const newPath = path.replace(`/output/${sessionId}/${port}`, '');
-        console.log(`Path rewrite: ${path} -> ${newPath}`);
-        return newPath;
-      }
-    });
+   proxy = createProxyMiddleware({
+  target: targetUrl,
+  changeOrigin: true,
+  ws: true
+  });
     
     proxyCache.set(cacheKey, proxy);
     console.log(`Created proxy instance for ${cacheKey}`);

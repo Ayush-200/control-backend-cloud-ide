@@ -3,6 +3,7 @@ import authRouter from './routes/auth.router.js'
 import awsRouter from './routes/aws.router.js';
 import projectRouter from './routes/project.router.js';
 import proxyRouter from './routes/proxy.router.js';
+import { proxyCache } from './controller/proxy.controller.js';
 import 'dotenv/config'
 import cors from 'cors';
 import http from 'http';
@@ -48,23 +49,12 @@ app.use((req, res) => {
 server.on('upgrade', (req, socket, head) => {
     console.log('WebSocket upgrade request:', req.url);
     
-    const urlParts = req.url?.split('/');
-    
-    if (urlParts && urlParts.length >= 4 && urlParts[1] === 'output') {
-        const sessionId = urlParts[2];
-        const port = urlParts[3];
-        
-        console.log(`WebSocket upgrade for session ${sessionId}, port ${port}`);
-        
-        // Import proxy cache from controller
-        // Note: This is a simplified approach. In production, you might want to
-        // create a shared cache or use a different approach
-        const cacheKey = `${sessionId}:*:${port}`;
-        
-        // For now, we'll let the proxy middleware handle WebSocket upgrades
-        // The actual proxy instance will be created when the first HTTP request comes in
-        console.log(`WebSocket upgrade will be handled by proxy middleware`);
-    }
+    // Forward WebSocket upgrade to all proxy instances
+    proxyCache.forEach(proxy => {
+        if (proxy.upgrade) {
+            proxy.upgrade(req, socket as any, head);
+        }
+    });
 });
 
 server.listen(PORT, () => {
