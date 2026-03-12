@@ -103,6 +103,7 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
       ws: true,
       proxyTimeout: 60000,     // Allow slow Vite cold starts
       timeout: 60000,
+      selfHandleResponse: true, // Enable response handling to rewrite HTML
 
       pathRewrite: (path) => {
         const prefix = `/output/${port}`;
@@ -120,6 +121,40 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
           const url = new URL(proxyReq.path, targetUrl);
           url.searchParams.delete('sessionId');
           proxyReq.path = url.pathname + url.search;
+        },
+
+        proxyRes(proxyRes, req, res) {
+          const _req = req as Request;
+          const port = _req.params.port;
+          const contentType = proxyRes.headers['content-type'] as string;
+
+          if (contentType && contentType.includes('text/html')) {
+            let body = '';
+
+            proxyRes.on('data', (chunk) => {
+              body += chunk.toString();
+            });
+
+            proxyRes.on('end', () => {
+              // Rewrite absolute paths in HTML to include proxy prefix
+              const rewritten = body.replace(/(href|src|action|formaction)="\/([^"]*)"/g, `$1="/output/${port}/$2"`);
+
+              // Copy headers except content-length
+              Object.keys(proxyRes.headers).forEach(key => {
+                if (key !== 'content-length') {
+                  res.setHeader(key, proxyRes.headers[key]!);
+                }
+              });
+
+              res.end(rewritten);
+            });
+          } else {
+            // For non-HTML responses, pipe directly
+            Object.keys(proxyRes.headers).forEach(key => {
+              res.setHeader(key, proxyRes.headers[key]!);
+            });
+            proxyRes.pipe(res);
+          }
         },
 
         error(err: any, _req, res) {
