@@ -1,5 +1,5 @@
 import express from 'express';
-import { endUserSession, startSession, updateSessionPrivateIp } from '../controller/session.js';
+import { endUserSession, startSession } from '../controller/session.js';
 const router = express.Router();
 
 console.log("i am here");
