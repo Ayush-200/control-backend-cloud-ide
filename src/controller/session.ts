@@ -64,11 +64,13 @@ export async function startSession(req: Request<{}, {}, sessionRequestType>, res
 
     // Update existing session or create new one
     if (existingSession) {
-      console.log(`Updating existing session ${sessionId} with new IP: ${privateIp}`);
+      console.log(`Updating existing session ${sessionId} with new IP: ${privateIp}, taskArn: ${taskArn}`);
       await updateSession(sessionId, privateIp, taskArn);
+      console.log(`✅ Session ${sessionId} updated successfully`);
     } else {
       console.log(`Creating new session ${sessionId} with IP: ${privateIp}`);
       await createSession(sessionId, userId, privateIp, taskArn, projectId, projectName);
+      console.log(`✅ Session ${sessionId} created successfully`);
     }
 
     return res.json({

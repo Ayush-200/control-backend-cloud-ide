@@ -1,6 +1,6 @@
 import db from "../db/index.js";
 import { sessions } from "../db/schema.js";
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and } from 'drizzle-orm';
 
 export const createSession = async (
   sessionId: string,
@@ -57,18 +57,29 @@ export const updateSessionIp = async (sessionId: string, newPrivateIp: string) =
 };
 
 export const getSessionByUserAndProject = async (userId: string, projectId?: string, projectName?: string) => {
-  const baseQuery = db.select().from(sessions).where(eq(sessions.userId, userId));
-    
   if (projectId) {
-    const result = await baseQuery.where(eq(sessions.projectId, projectId)).limit(1);
+    const result = await db
+      .select()
+      .from(sessions)
+      .where(and(eq(sessions.userId, userId), eq(sessions.projectId, projectId)))
+      .limit(1);
     return result[0] || null;
   } else if (projectName) {
-    const result = await baseQuery.where(eq(sessions.projectName, projectName)).limit(1);
+    const result = await db
+      .select()
+      .from(sessions)
+      .where(and(eq(sessions.userId, userId), eq(sessions.projectName, projectName)))
+      .limit(1);
     return result[0] || null;
   }
   
   // If no projectId or projectName, return the most recent session for the user
-  const result = await baseQuery.orderBy(desc(sessions.updatedAt)).limit(1);
+  const result = await db
+    .select()
+    .from(sessions)
+    .where(eq(sessions.userId, userId))
+    .orderBy(desc(sessions.updatedAt))
+    .limit(1);
   return result[0] || null;
 };
 
