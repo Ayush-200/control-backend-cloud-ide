@@ -78,19 +78,46 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
 
   console.log(`Routing ${sessionId} → ${targetUrl}`);
 
-  // Health check with actual target port
-  try {
-    const testResponse = await fetch(`${targetUrl}/`, {
-      method: 'GET',
-      signal: AbortSignal.timeout(5000)
-    });
-    console.log(`✅ Container reachable: ${testResponse.status}`);
-  } catch (err: any) {
-    console.error(`❌ Container NOT reachable: ${err.message}`);
+  // Health check - try multiple common endpoints
+  const healthCheckUrls = [
+    `${targetUrl}/`,
+    `${targetUrl}/health`,
+    `${targetUrl}/api/health`,
+    `${targetUrl}/status`
+  ];
+
+  let isReachable = false;
+  let lastError = '';
+
+  for (const checkUrl of healthCheckUrls) {
+    try {
+      const testResponse = await fetch(checkUrl, {
+        method: 'GET',
+        signal: AbortSignal.timeout(3000) // Shorter timeout for health checks
+      });
+
+      // Accept any 2xx or 3xx status as "reachable"
+      if (testResponse.status >= 200 && testResponse.status < 400) {
+        console.log(`✅ Container reachable: ${testResponse.status} (${checkUrl})`);
+        isReachable = true;
+        break;
+      } else {
+        console.log(`⚠️  Health check ${checkUrl}: ${testResponse.status}`);
+        lastError = `HTTP ${testResponse.status}`;
+      }
+    } catch (err: any) {
+      console.log(`⚠️  Health check ${checkUrl} failed: ${err.message}`);
+      lastError = err.message;
+    }
+  }
+
+  if (!isReachable) {
+    console.error(`❌ Container NOT reachable: ${lastError}`);
     return res.status(502).json({
       error: 'Container not reachable',
       target: targetUrl,
-      details: err.message
+      details: lastError,
+      tried: healthCheckUrls
     });
   }
 
