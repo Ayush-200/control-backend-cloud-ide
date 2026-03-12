@@ -1,11 +1,11 @@
-import db from '../db/index.js';
+import db from '../db';
 import { users } from '../db/schema.js';
 import { insertUser } from '../repositories/user.repository.js';
-import type {signupDataType} from '../types/types.js';
+import type {signupDataType} from '../types/types';
 import bcrypt from 'bcrypt';
 import { eq } from 'drizzle-orm';
-import { generateToken } from '../utils/jwt.js';
-import { createRefreshToken } from '../utils/createRefreshToken.js';
+import { generateToken } from '../utils/jwt';
+import { createRefreshToken } from '../utils/createRefreshToken';
 
 export const signupUser = (data: signupDataType) => { 
     const password = data.password;

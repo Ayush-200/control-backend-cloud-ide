@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/debug', getSessionInfo);
 
 // Proxy routes - no /output prefix needed since router is mounted at /output
-router.all('/:sessionId/:port/*path', proxyToContainer);
-router.all('/:sessionId/:port', proxyToContainer);
+router.all('/:port/*path', proxyToContainer);
+router.all('/:port', proxyToContainer);
 
 export default router;

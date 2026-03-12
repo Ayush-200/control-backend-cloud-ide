@@ -1,1 +1,0 @@
-ALTER TABLE "cloud-ide-users" ADD COLUMN "accessPointId" text;

@@ -1,4 +1,4 @@
-import type { Request, Response } from "express";
+import type {Request, Response}  from "express";
 import { startAndPrepareTask } from "../utils/aws-controller/startTask.js";
 import { registerTarget } from "../utils/aws-controller/registerTask.js";
 import type { sessionRequestType, sessionStopRequest }  from "../types/types.js";

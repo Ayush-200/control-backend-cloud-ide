@@ -1,10 +1,10 @@
 import { insertUser, getUserByEmail } from "../repositories/user.repository.js"
-import db from '../db/index.js'
+import db from '../db/index'
 import { eq } from "drizzle-orm";
 import { users } from "../db/schema.js";
-import { loginUser, signupUser } from "../services/auth.service.js";
-import { generateToken } from "../utils/jwt.js";
-import { createRefreshToken } from "../utils/createRefreshToken.js";
+import { loginUser, signupUser } from "../services/auth.service";
+import { generateToken } from "../utils/jwt";
+import { createRefreshToken } from "../utils/createRefreshToken";
 
 export const signupUserController = async (req: any, res: any) => {
     const { name, email, password} = req.body;
