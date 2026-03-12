@@ -1,11 +1,11 @@
 import type { Request, Response, NextFunction } from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, type RequestHandler } from 'http-proxy-middleware';
 import { getSessionById } from '../repositories/session.repository.js';
 
-// Cache proxy instances to prevent memory leaks
-const proxyCache = new Map<string, ReturnType<typeof createProxyMiddleware>>();
+// Cache proxy instances (keyed by target to reuse safely)
+const proxyCache = new Map<string, RequestHandler>();
 
-// Debug endpoint to check session info
+// Debug endpoint (unchanged – looks fine)
 export const getSessionInfo = async (req: Request, res: Response) => {
   const sessionId = req.query.sessionId as string;
 
@@ -41,15 +41,15 @@ export const getSessionInfo = async (req: Request, res: Response) => {
   });
 };
 
-// Proxy handler for /output/:port routes
+// Proxy handler
 export const proxyToContainer = async (req: Request, res: Response, next: NextFunction) => {
-  const portParam = req.params.port;
-  const port = Array.isArray(portParam) ? portParam[0] : portParam;
+  const port = req.params.port as string;
   const sessionId = req.query.sessionId as string;
 
   console.log('=== PROXY REQUEST ===');
   console.log('Port:', port);
   console.log('SessionId:', sessionId);
+  console.log('Original URL:', req.originalUrl);
   console.log('Path:', req.path);
 
   if (!sessionId) {
@@ -59,91 +59,91 @@ export const proxyToContainer = async (req: Request, res: Response, next: NextFu
     });
   }
 
-  // Get session from database
   const session = await getSessionById(sessionId);
-
   if (!session) {
     return res.status(404).json({ 
       error: 'Session not found or expired',
-      sessionId: sessionId
+      sessionId
     });
   }
 
   const privateIp = session.privateIp;
-
-  // Validate port number
-  const portNum = parseInt(port);
+  const portNum = parseInt(port, 10);
   if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
     return res.status(400).json({ error: 'Invalid port number' });
   }
 
   const targetUrl = `http://${privateIp}:${port}`;
   const cacheKey = `${privateIp}:${port}`;
-  
-  console.log(`Routing session ${sessionId} to ${targetUrl}`);
-  
-  // Test connectivity to container
+
+  console.log(`Routing ${sessionId} → ${targetUrl}`);
+
+  // Health check with actual target port
   try {
-    const testResponse = await fetch(`http://${privateIp}:8080/health`, { 
+    const testResponse = await fetch(`${targetUrl}/`, {
       method: 'GET',
       signal: AbortSignal.timeout(5000)
     });
-    console.log(`✅ Container health check: ${testResponse.status}`);
+    console.log(`✅ Container reachable: ${testResponse.status}`);
   } catch (err: any) {
-    console.log(`❌ Container health check failed: ${err.message}`);
+    console.error(`❌ Container NOT reachable: ${err.message}`);
+    return res.status(502).json({
+      error: 'Container not reachable',
+      target: targetUrl,
+      details: err.message
+    });
   }
 
-  // Get or create cached proxy instance
   let proxy = proxyCache.get(cacheKey);
-  
+
   if (!proxy) {
     proxy = createProxyMiddleware({
       target: targetUrl,
       changeOrigin: true,
       ws: true,
-      secure: false,
-      xfwd: true,
+      proxyTimeout: 60000,     // Allow slow Vite cold starts
+      timeout: 60000,
+
+      pathRewrite: (path) => {
+        const prefix = `/output/${port}`;
+        if (path.startsWith(prefix)) {
+          return path.slice(prefix.length) || '/';
+        }
+        return path;
+      },
+
       on: {
-        proxyReq(proxyReq, req, res) {
-          proxyReq.setHeader('Host', new URL(targetUrl).host);
-          
-          // Remove sessionId so Vite doesn't see it
+        proxyReq(proxyReq) {
+          proxyReq.setHeader('Host', `${privateIp}:${port}`);
+
+          // Strip sessionId from backend request
           const url = new URL(proxyReq.path, targetUrl);
           url.searchParams.delete('sessionId');
           proxyReq.path = url.pathname + url.search;
         },
-        
-        proxyRes(proxyRes, req, res) {
-          // Optional: handle response modifications here if needed
+
+        error(err: any, _req, res) {
+          console.error(`Proxy error → ${targetUrl}:`, err);
+
+          // Check if response is Express Response and headers not sent
+          if (res && typeof (res as any).status === 'function' && !(res as any).headersSent) {
+            (res as Response).status(502).json({
+              error: 'Proxy connection failed',
+              message: err?.message ?? 'Unknown proxy error',
+              target: targetUrl
+            });
+          } else {
+            // Already sent or socket → just log, can't respond
+            console.warn('Cannot send error response: headers already sent or socket');
+          }
         }
       }
-    });
-    
+    }) as RequestHandler;
+
     proxyCache.set(cacheKey, proxy);
-    console.log(`Created proxy instance for ${cacheKey}`);
+    console.log(`Created new proxy for ${cacheKey}`);
   }
 
-  // Path stripping — do it cleanly
-  const match = req.originalUrl.match(/^\/output\/\d+(\/?.*)$/);
-  if (match) {
-    req.url = match[1] || '/';
-  } else {
-    req.url = '/';
-  }
-
-  console.log(`Rewritten URL: ${req.originalUrl} → ${req.url}`);
-
-  // Execute the proxy with error handling
-  try {
-    proxy(req, res, next);
-  } catch (err: any) {
-    console.error(`Proxy error for ${targetUrl}:`, err.message);
-    if (!res.headersSent) {
-      res.status(502).json({ 
-        error: 'Failed to connect to container',
-        message: err.message,
-        target: targetUrl
-      });
-    }
-  }
+  // Call proxy middleware
+  proxy(req, res, next);
 };
