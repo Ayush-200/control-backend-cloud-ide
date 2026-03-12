@@ -1,5 +1,5 @@
-import  db from "../db/index";
-import { users } from "../model/user.model";
+import  db from "../db/index.js";
+import { users } from "../db/schema.js";
 import { eq, sql } from 'drizzle-orm'
 
 export const insertUser = async (name: string, email: string, password: string, refreshToken: string) => { 
@@ -8,8 +8,8 @@ export const insertUser = async (name: string, email: string, password: string, 
         email: email,
         password: password,
         projects: [], 
-        accessPointId: "", 
-        refreshToken: refreshToken
+        refreshToken: refreshToken,
+        accessPointId: ""
     });
 }
 
