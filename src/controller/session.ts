@@ -6,6 +6,7 @@ import { stopUserTask } from "../utils/aws-controller/stopTask.js";
 import { deregisterTarget } from "../utils/aws-controller/deregisterTask.js";
 import { nanoid } from "nanoid";
 import { createSession, deleteSession, getSessionByUserAndProject, updateSession } from '../repositories/session.repository.js';
+import { storeWorkspaceInRedis, deleteWorkspaceFromRedis } from '../services/workspace.service.js';
 
 export async function startSession(req: Request<{}, {}, sessionRequestType>, res: Response) {
   try {
@@ -61,6 +62,16 @@ export async function startSession(req: Request<{}, {}, sessionRequestType>, res
     );
 
     await registerTarget(privateIp);
+
+    // Store workspace data in Redis for reverse proxy
+    await storeWorkspaceInRedis(sessionId, {
+      ip: privateIp,
+      userId,
+      projectName,
+      sessionId,
+      taskArn
+    });
+    console.log(`✅ Workspace stored in Redis: workspace:${sessionId}`);
 
     // Update existing session or create new one
     if (existingSession) {
@@ -134,6 +145,10 @@ export async function endUserSession(
 
     // Delete session from database
     await deleteSession(sessionId);
+
+    // Delete workspace from Redis
+    await deleteWorkspaceFromRedis(sessionId);
+    console.log(`✅ Workspace deleted from Redis: workspace:${sessionId}`);
 
     return res.json({
       success: true,

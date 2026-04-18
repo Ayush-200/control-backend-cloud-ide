@@ -17,6 +17,9 @@ export async function registerTarget(
   }
 
   try{
+  console.log(`🎯 Registering target with IP: ${taskPrivateIp} to port 8080`);
+  console.log(`📋 Target Group ARN: ${process.env.NEXT_PUBLIC_TARGET_GROUP_ARN}`);
+  
   const command = new RegisterTargetsCommand({
     TargetGroupArn: process.env.NEXT_PUBLIC_TARGET_GROUP_ARN!, 
     Targets: [
@@ -27,9 +30,11 @@ export async function registerTarget(
     ]
   });
 
-  await elb.send(command);
+  const response = await elb.send(command);
+  console.log(`✅ Target registered successfully:`, response);
 }catch(err){
-    console.log("error occured in register target", err);
+    console.error("❌ Error occurred in register target:", err);
+    throw err; // Re-throw to see the error in session controller
 }
 
   
