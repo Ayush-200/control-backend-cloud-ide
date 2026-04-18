@@ -34,7 +34,7 @@ export async function startAndPrepareTask(
       overrides: {
         containerOverrides: [
           {
-            name: `cloud-ide-ecr`,
+            name: `execution`,
             environment: [
               { name: "USER_ID", value: userId }, 
               { name: "SESSION_ID", value: sessionId },
@@ -42,11 +42,11 @@ export async function startAndPrepareTask(
               { name: "WORKSPACE_PATH", value: workspacePath },
               { name: "PROJECT_NAME", value: projectName }
             ],
-            // Command to ensure workspace directory exists
+            // Command to ensure workspace directory exists and run as root
             command: [
               "sh",
               "-c",
-              `mkdir -p ${workspacePath} && node /app/dist/server.js`
+              `mkdir -p ${workspacePath} && chmod -R 777 /workspace && node /app/dist/server.js`
             ]
           }
         ]
