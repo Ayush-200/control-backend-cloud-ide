@@ -6,8 +6,6 @@ export const users = pgTable("cloud-ide-users", {
   name: varchar({ length: 255 }).notNull(),
   projects: text().array().default([]).notNull(),
   email: varchar({ length: 255 }).notNull().unique(),
-  password: varchar({ length: 255 }).default(''), // Allow empty string for Auth0 users
-  refreshToken: varchar({length: 255}),
   accessPointId: varchar({ length: 255 }).default('')
 });
 

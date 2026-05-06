@@ -1,17 +1,9 @@
 import express from 'express';
-import {loginValidator} from '../utils/loginValidor.js'
-import { signupValidator } from '../utils/singupValidator.js';
-import validateErrors from '../utils/validateErrors.js';
-import { loginUserController, signupUserController, getUserByEmailController } from '../controller/auth.controller.js';
-import { refreshAccessToken } from '../utils/refreshAccessToken.js'
+import { getUserByEmailController } from '../controller/auth.controller.js';
+
 const router = express.Router();
 
-router.post("/login", loginValidator, validateErrors, loginUserController);
-
-router.post('/signup', signupValidator, validateErrors, signupUserController);
-
+// Only keep the Auth0 integration endpoint
 router.post('/user', getUserByEmailController);
-
-router.post('/refresh', refreshAccessToken);
 
 export default router;

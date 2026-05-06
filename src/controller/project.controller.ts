@@ -14,11 +14,18 @@ export const createProject = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "projectName is required" });
     }
 
+    // Verify user exists before creating project
+    const user = await getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
     // Generate unique project ID
     const projectId = nanoid(10);
     const project = {
       id: projectId,
       name: projectName,
+      status: "created", // Project created but no container yet
       createdAt: new Date().toISOString()
     };
 
@@ -29,7 +36,8 @@ export const createProject = async (req: Request, res: Response) => {
 
     return res.status(201).json({
       success: true,
-      project
+      project,
+      message: "Project created. Start a session to launch the container."
     });
   } catch (err) {
     console.error("Failed to create project:", err);

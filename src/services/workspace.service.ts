@@ -8,11 +8,6 @@ export interface WorkspaceData {
   taskArn: string;
 }
 
-/**
- * Store workspace information in Redis
- * @param workspaceId - Unique workspace identifier (sessionId)
- * @param data - Workspace data including IP, userId, projectName, etc.
- */
 export async function storeWorkspaceInRedis(
   workspaceId: string,
   data: WorkspaceData
@@ -29,11 +24,6 @@ export async function storeWorkspaceInRedis(
   }
 }
 
-/**
- * Retrieve workspace information from Redis
- * @param workspaceId - Unique workspace identifier (sessionId)
- * @returns Workspace data or null if not found
- */
 export async function getWorkspaceFromRedis(
   workspaceId: string
 ): Promise<WorkspaceData | null> {
@@ -50,10 +40,6 @@ export async function getWorkspaceFromRedis(
   }
 }
 
-/**
- * Delete workspace information from Redis
- * @param workspaceId - Unique workspace identifier (sessionId)
- */
 export async function deleteWorkspaceFromRedis(
   workspaceId: string
 ): Promise<void> {
@@ -66,11 +52,7 @@ export async function deleteWorkspaceFromRedis(
   }
 }
 
-/**
- * Update workspace IP in Redis (useful when container restarts)
- * @param workspaceId - Unique workspace identifier (sessionId)
- * @param newIp - New private IP address
- */
+
 export async function updateWorkspaceIpInRedis(
   workspaceId: string,
   newIp: string

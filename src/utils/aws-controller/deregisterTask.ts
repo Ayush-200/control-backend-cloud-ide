@@ -5,7 +5,7 @@ import {
 import 'dotenv/config';
 
 const elb = new ElasticLoadBalancingV2Client({
-  region: process.env.NEXT_PUBLIC_REGION!// must match your ALB region
+  region: process.env.NEXT_PUBLIC_REGION!// ALB region
 });
 
 export async function deregisterTarget(
